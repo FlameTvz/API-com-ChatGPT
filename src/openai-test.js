@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import multer from "multer";
 import cors from "cors";
 import { transcribeAudio } from './transcription.js'; // Importa a função do módulo transcription.js
-
+//só teste
 const app = express();
 app.use(express.json());
 app.use(cors());
