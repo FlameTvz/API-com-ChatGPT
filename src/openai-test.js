@@ -1,14 +1,21 @@
 import express from "express";
+import OpenAI from "openai";
 import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from 'url';
 import multer from "multer";
 import cors from "cors";
+import fs from "fs";
 import { transcribeAudio } from './transcription.js'; // Importa a função do módulo transcription.js
-//só teste
+
+// Inicializa o express e outras configurações
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,8 +46,6 @@ app.get('/', (req, res) => {
 });
 
 app.listen(4006, () => {
-    // mongoose.connect('mongodb+srv://gustavoeanna7:rIHPtaebolcJARME@apichatgpt.vwjfntw.mongodb.net/?retryWrites=true&w=majority&appName=APIChatgpt', {
-    // });
     console.log('Servidor rodando na porta 4006');
 });
 
@@ -49,6 +54,10 @@ app.post('/transcribe', async (req, res) => {
         try {
             const transcriptionText = await transcribeAudio(latestFilePath);
             console.log(`Transcrição: ${transcriptionText}`); // Log para verificar a transcrição
+
+            // Chama a função de pergunta com o texto da transcrição
+            await pergunta(transcriptionText);
+
             res.json({ transcription: transcriptionText });
         } catch (error) {
             console.error('Erro ao transcrever o áudio:', error);
@@ -58,3 +67,15 @@ app.post('/transcribe', async (req, res) => {
         res.status(400).send('Nenhum arquivo foi carregado ainda.');
     }
 });
+
+async function pergunta(transcriptionText) {
+    const completion = await openai.chat.completions.create({
+        messages: [
+            { role: "system", content: "You are a helpful assistant." },
+            { role: "user", content: transcriptionText }
+        ],
+        model: "gpt-3.5-turbo",
+    });
+
+    console.log(`Resposta: ${completion.choices[0].message.content}`);
+}
