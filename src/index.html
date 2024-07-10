@@ -1,0 +1,252 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pergunte ao Porteiro</title>
+</head>
+
+<body>
+    <h1>Pergunte ao Porteiro</h1>
+    <form id="perguntaForm">
+        <label for="pergunta">Digite sua pergunta:</label>
+        <input type="text" id="pergunta" name="pergunta" required>
+        <button type="submit">Enviar</button>
+    </form>
+    <h2>Resposta:</h2>
+    <p id="resposta"></p>
+
+
+    <script>
+        document.getElementById('perguntaForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const pergunta = document.getElementById('pergunta').value;
+
+            try {
+                const response = await fetch('/pergunta', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pergunta })
+                });
+
+                const data = await response.json();
+                document.getElementById('resposta').textContent = data.resposta;
+            } catch (error) {
+                document.getElementById('resposta').textContent = 'Erro ao obter a resposta';
+            }
+        });
+    </script>
+</body>
+
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record audios</title>
+    <style>
+ 
+        @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+        :root {
+            --bg-body: #20292D;
+            --color-border: #060A0D;
+            --bg-popup: #314043;
+            --color-text: #405B5A;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        *,
+        button,
+        input {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: var(--bg-body);
+
+            display: flex;
+            flex-direction: column;
+
+            align-items: center;
+            margin: 20vh 0;
+        }
+
+        header h1 {
+            color: var(--color-text);
+
+            font-size: 4rem;
+
+            margin-bottom: 2rem;
+        }
+
+        .container {
+            width: 50vw;
+            height: 40vh;
+
+            background: var(--bg-popup);
+
+            border-radius: 1rem;
+            border: var(--color-border) solid 0.1rem;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            padding: 0 4rem;
+        }
+
+        div button {
+            width: 10rem;
+
+            height: 4rem;
+
+            background-color: transparent;
+            border: none;
+
+            transition: 0.2s ease-in-out;
+
+            font-size: 1.2rem;
+            outline: none;
+
+            transition: background .4s;
+        }
+
+        div#recorder-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        div button:hover {
+            background: var(--color-text);
+        }
+
+        #audio-area audio {
+            max-width: 24rem;
+            height: 4rem;
+
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Start to record</h1>
+    </header>
+    <main class="container">
+        <div id="recorder-area">
+            <button id="start">Iniciar gravação</button>
+            <button id="stop">Parar Gravação</button>
+            <button id="upload" disabled>Upload</button>
+        </div>
+        <div id="audio-area">
+            <audio controls id="audio-player"></audio>
+        </div>
+    </main>
+    <script>
+        let status = false;
+        let audioBlob;
+        const audioPlayer = document.querySelector('#audio-player');
+        const handleButtons = {
+            start: document.querySelector('#start'),
+            stop: document.querySelector('#stop'),
+            upload: document.querySelector('#upload')
+        };
+
+        const init = async () => {
+            const recorder = await recordAudio();
+            const { start: startButton, stop: stopButton, upload: uploadButton } = handleButtons;
+
+            stopButton.disabled = true;
+            uploadButton.disabled = true;
+
+            startButton.addEventListener('click', () => {
+                if (!status) {
+                    startButton.disabled = true;
+                    stopButton.disabled = false;
+                    status = true;
+                    audioPlayer.src = '';
+                    recorder.start();
+                }
+            });
+
+            stopButton.addEventListener('click', async () => {
+                if (status) {
+                    const { audio, audioChunks } = await recorder.stop();
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                    uploadButton.disabled = false;
+                    status = false;
+                    audioPlayer.src = audio.src;
+                    audioBlob = new Blob(audioChunks);
+                }
+            });
+
+            uploadButton.addEventListener('click', async () => {
+                if (audioBlob) {
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'audio.mp3');
+                    try {
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+                        console.log('File uploaded to:', data.filePath); // Log para verificar o caminho do arquivo carregado
+                        alert('Upload successful! File saved to: ' + data.filePath);
+
+                        // Iniciar a transcrição após o upload
+                        const transcribeResponse = await fetch('/transcribe', {
+                            method: 'POST'
+                        });
+                        const transcribeData = await transcribeResponse.json();
+                        console.log('Transcrição:', transcribeData.transcription); // Log para verificar a resposta da transcrição
+                        alert('Transcrição: ' + transcribeData.transcription);
+                    } catch (error) {
+                        console.error('Error uploading file:', error);
+                        alert('Upload failed!');
+                    }
+                }
+            });
+        };
+
+        const recordAudio = () => new Promise(async resolve => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            let audioChunks = [];
+
+            mediaRecorder.addEventListener("dataavailable", event => audioChunks.push(event.data));
+
+            const start = () => mediaRecorder.start();
+
+            const stop = () => new Promise(resolve => {
+                mediaRecorder.addEventListener("stop", () => {
+                    const audioBlob = new Blob(audioChunks);
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    resolve({ audio, audioChunks });
+                });
+                mediaRecorder.stop();
+                audioChunks = [];
+            });
+
+            resolve({ start, stop });
+        });
+
+        init();
+    </script>
+</body>
+</html>
