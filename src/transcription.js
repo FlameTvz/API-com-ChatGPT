@@ -14,8 +14,10 @@ export async function transcribeAudio(filePath) {
         });
         console.log(`Texto transcrito: ${transcription.text}`); // Log para verificar o texto transcrito
         return transcription.text;
+        
     } catch (error) {
         console.error('Erro ao transcrever o áudio:', error);
         throw error;
     }
 }
+

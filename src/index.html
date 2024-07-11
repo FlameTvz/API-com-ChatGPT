@@ -1,49 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pergunte ao Porteiro</title>
-</head>
-
-<body>
-    <h1>Pergunte ao Porteiro</h1>
-    <form id="perguntaForm">
-        <label for="pergunta">Digite sua pergunta:</label>
-        <input type="text" id="pergunta" name="pergunta" required>
-        <button type="submit">Enviar</button>
-    </form>
-    <h2>Resposta:</h2>
-    <p id="resposta"></p>
-
-
-    <script>
-        document.getElementById('perguntaForm').addEventListener('submit', async function (event) {
-            event.preventDefault();
-            const pergunta = document.getElementById('pergunta').value;
-
-            try {
-                const response = await fetch('/pergunta', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ pergunta })
-                });
-
-                const data = await response.json();
-                document.getElementById('resposta').textContent = data.resposta;
-            } catch (error) {
-                document.getElementById('resposta').textContent = 'Erro ao obter a resposta';
-            }
-        });
-    </script>
-</body>
-
-</html> -->
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,14 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Record audios</title>
     <style>
- 
         @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
         :root {
-            --bg-body: #20292D;
-            --color-border: #060A0D;
-            --bg-popup: #314043;
-            --color-text: #405B5A;
+            --bg-body: #FFFFFF;
+            --color-border: #CCCCCC;
+            --bg-popup: #F0F0F0;
+            --color-text: #333333;
+            --hover-bg: #E0E0E0;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --audio-bg: #FFFFFF;
+            --audio-border: #CCCCCC;
+            --primary-color: #4A90E2;
+            --secondary-color: #E94A3F;
         }
 
         * {
@@ -76,52 +35,42 @@
         body {
             overflow: hidden;
             background-color: var(--bg-body);
-
             display: flex;
             flex-direction: column;
-
             align-items: center;
             margin: 20vh 0;
+            color: var(--color-text);
         }
 
         header h1 {
-            color: var(--color-text);
-
             font-size: 4rem;
-
             margin-bottom: 2rem;
         }
 
         .container {
             width: 50vw;
             height: 40vh;
-
             background: var(--bg-popup);
-
             border-radius: 1rem;
-            border: var(--color-border) solid 0.1rem;
-
+            border: 0.1rem solid var(--color-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-
             padding: 0 4rem;
+            box-shadow: 0 4px 8px var(--shadow);
         }
 
         div button {
             width: 10rem;
-
             height: 4rem;
-
             background-color: transparent;
-            border: none;
-
-            transition: 0.2s ease-in-out;
-
+            border: 0.1rem solid var(--color-border);
+            transition: background 0.4s, border 0.4s, transform 0.2s ease-in-out;
             font-size: 1.2rem;
             outline: none;
-
-            transition: background .4s;
+            color: var(--color-text);
+            cursor: pointer;
+            border-radius: 0.5rem;
         }
 
         div#recorder-area {
@@ -131,14 +80,66 @@
         }
 
         div button:hover {
-            background: var(--color-text);
+            background: var (--hover-bg);
+            border-color: var (--hover-bg);
+            transform: scale(1.05);
         }
 
         #audio-area audio {
+            width: 100%;
             max-width: 24rem;
-            height: 4rem;
+            background: var (--audio-bg);
+            border: 0.1rem solid var (--audio-border);
+            border-radius: 0.5rem;
+            outline: none;
+            padding: 0.5rem;
+        }
 
-            border: none;
+        /* Customizing audio controls for WebKit-based browsers */
+        audio::-webkit-media-controls-panel {
+            background-color: var (--audio-bg);
+            border-radius: 0.5rem;
+        }
+
+        audio::-webkit-media-controls-play-button,
+        audio::-webkit-media-controls-pause-button,
+        audio::-webkit-media-controls-mute-button,
+        audio::-webkit-media-controls-volume-slider-container,
+        audio::-webkit-media-controls-timeline-container {
+            background-color: var (--primary-color);
+            color: var (--color-text);
+        }
+
+        audio::-webkit-media-controls-current-time-display,
+        audio::-webkit-media-controls-time-remaining-display {
+            color: var (--color-text);
+        }
+
+        audio::-webkit-media-controls-play-button:hover,
+        audio::-webkit-media-controls-pause-button:hover,
+        audio::-webkit-media-controls-mute-button:hover,
+        audio::-webkit-media-controls-volume-slider-container:hover,
+        audio::-webkit-media-controls-timeline-container:hover {
+            background-color: var (--secondary-color);
+        }
+
+        .response-container {
+            width: 50vw;
+            background: var (--bg-popup);
+            border-radius: 1rem;
+            border: 0.1rem solid var (--color-border);
+            padding: 1rem 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 8px var (--shadow);
+        }
+
+        .response-container h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .response-container p {
+            font-size: 1.2rem;
         }
     </style>
 </head>
@@ -156,6 +157,10 @@
             <audio controls id="audio-player"></audio>
         </div>
     </main>
+    <div class="response-container" id="response-container" style="display:none;">
+        <h2>Resposta do GPT</h2>
+        <p id="gpt-response"></p>
+    </div>
     <script>
         let status = false;
         let audioBlob;
@@ -205,16 +210,28 @@
                             body: formData
                         });
                         const data = await response.json();
-                        console.log('File uploaded to:', data.filePath); // Log para verificar o caminho do arquivo carregado
+                        console.log('File uploaded to:', data.filePath);
                         alert('Upload successful! File saved to: ' + data.filePath);
 
-                        // Iniciar a transcrição após o upload
                         const transcribeResponse = await fetch('/transcribe', {
                             method: 'POST'
                         });
                         const transcribeData = await transcribeResponse.json();
-                        console.log('Transcrição:', transcribeData.transcription); // Log para verificar a resposta da transcrição
+                        console.log('Transcrição:', transcribeData.transcription);
                         alert('Transcrição: ' + transcribeData.transcription);
+
+                        // Exibir a resposta do GPT na nova aba
+                        document.querySelector('#gpt-response').textContent = transcribeData.gptResponse;
+                        document.querySelector('#response-container').style.display = 'block';
+
+                        // Solicitar o arquivo de áudio gerado
+                        const audioResponse = await fetch('/get-audio');
+                        if (audioResponse.ok) {
+                            const audioUrl = URL.createObjectURL(await audioResponse.blob());
+                            audioPlayer.src = audioUrl;
+                        } else {
+                            console.error('Error fetching audio file');
+                        }
                     } catch (error) {
                         console.error('Error uploading file:', error);
                         alert('Upload failed!');
