@@ -80,16 +80,16 @@
         }
 
         div button:hover {
-            background: var (--hover-bg);
-            border-color: var (--hover-bg);
+            background: var(--hover-bg);
+            border-color: var(--hover-bg);
             transform: scale(1.05);
         }
 
         #audio-area audio {
             width: 100%;
             max-width: 24rem;
-            background: var (--audio-bg);
-            border: 0.1rem solid var (--audio-border);
+            background: var(--audio-bg);
+            border: 0.1rem solid var(--audio-border);
             border-radius: 0.5rem;
             outline: none;
             padding: 0.5rem;
@@ -97,7 +97,7 @@
 
         /* Customizing audio controls for WebKit-based browsers */
         audio::-webkit-media-controls-panel {
-            background-color: var (--audio-bg);
+            background-color: var(--audio-bg);
             border-radius: 0.5rem;
         }
 
@@ -106,13 +106,13 @@
         audio::-webkit-media-controls-mute-button,
         audio::-webkit-media-controls-volume-slider-container,
         audio::-webkit-media-controls-timeline-container {
-            background-color: var (--primary-color);
-            color: var (--color-text);
+            background-color: var(--primary-color);
+            color: var(--color-text);
         }
 
         audio::-webkit-media-controls-current-time-display,
         audio::-webkit-media-controls-time-remaining-display {
-            color: var (--color-text);
+            color: var(--color-text);
         }
 
         audio::-webkit-media-controls-play-button:hover,
@@ -120,17 +120,17 @@
         audio::-webkit-media-controls-mute-button:hover,
         audio::-webkit-media-controls-volume-slider-container:hover,
         audio::-webkit-media-controls-timeline-container:hover {
-            background-color: var (--secondary-color);
+            background-color: var(--secondary-color);
         }
 
         .response-container {
             width: 50vw;
-            background: var (--bg-popup);
+            background: var(--bg-popup);
             border-radius: 1rem;
-            border: 0.1rem solid var (--color-border);
+            border: 0.1rem solid var(--color-border);
             padding: 1rem 2rem;
             margin-top: 2rem;
-            box-shadow: 0 4px 8px var (--shadow);
+            box-shadow: 0 4px 8px var(--shadow);
         }
 
         .response-container h2 {
@@ -217,21 +217,11 @@
                             method: 'POST'
                         });
                         const transcribeData = await transcribeResponse.json();
-                        console.log('Transcrição:', transcribeData.transcription);
-                        alert('Transcrição: ' + transcribeData.transcription);
+                        console.log('Áudio gerado:', transcribeData.audioUrl);
+                        alert('Áudio gerado: ' + transcribeData.audioUrl);
 
-                        // Exibir a resposta do GPT na nova aba
-                        document.querySelector('#gpt-response').textContent = transcribeData.gptResponse;
-                        document.querySelector('#response-container').style.display = 'block';
-
-                        // Solicitar o arquivo de áudio gerado
-                        const audioResponse = await fetch('/get-audio');
-                        if (audioResponse.ok) {
-                            const audioUrl = URL.createObjectURL(await audioResponse.blob());
-                            audioPlayer.src = audioUrl;
-                        } else {
-                            console.error('Error fetching audio file');
-                        }
+                        // Definir a URL do áudio gerado como a fonte do elemento de áudio
+                        audioPlayer.src = transcribeData.audioUrl;
                     } catch (error) {
                         console.error('Error uploading file:', error);
                         alert('Upload failed!');

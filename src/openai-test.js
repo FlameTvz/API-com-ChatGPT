@@ -1,13 +1,13 @@
-import express from "express";
-import OpenAI from "openai";
-import path from "path";
+import express from 'express';
+import OpenAI from 'openai';
+import path from 'path';
 import { fileURLToPath } from 'url';
-import multer from "multer";
-import cors from "cors";
-import fs from "fs";
-import { transcribeAudio } from './transcription.js'; // Importa a função do módulo transcription.js
+import multer from 'multer';
+import cors from 'cors';
+import fs from 'fs';
+import { transcribeAudio } from './transcription.js';
+import initDB from './database.js'; // Importa a função do módulo database.js
 
-// Inicializa o express e outras configurações
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
     filename: function (req, file, cb) {
         const filePath = Date.now() + '-' + file.originalname;
         latestFilePath = path.join('uploads', filePath);
-        console.log(`Arquivo salvo em: ${latestFilePath}`); // Log para verificar o caminho do arquivo
+        console.log(`Arquivo salvo em: ${latestFilePath}`);
         cb(null, filePath);
     }
 });
@@ -38,7 +38,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.post('/upload', upload.single('audio'), (req, res) => {
-    console.log(`Recebido arquivo: ${req.file.originalname}`); // Log para verificar o upload
+    console.log(`Recebido arquivo: ${req.file.originalname}`);
     res.json({ filePath: latestFilePath });
 });
 
@@ -50,12 +50,14 @@ app.post('/transcribe', async (req, res) => {
     if (latestFilePath) {
         try {
             const transcriptionText = await transcribeAudio(latestFilePath);
-            console.log(`Transcrição: ${transcriptionText}`); // Log para verificar a transcrição
+            console.log(`Transcrição: ${transcriptionText}`);
 
             // Chama a função de pergunta com o texto da transcrição
             const gptResponse = await pergunta(transcriptionText);
 
-            res.json({ transcription: transcriptionText, gptResponse });
+            // Gera o áudio e envia a URL do arquivo MP3 gerado
+            await speechIA();
+            res.json({ audioUrl: '/get-audio' });
         } catch (error) {
             console.error('Erro ao transcrever o áudio:', error);
             res.status(500).json({ error: 'Erro ao transcrever o áudio.' });
@@ -68,9 +70,13 @@ app.post('/transcribe', async (req, res) => {
 const speechFile = path.resolve("./speech.mp3");
 
 async function pergunta(transcriptionText) {
+    const db = await initDB();
+    const rows = await db.all('SELECT info FROM building_info');
+    const systemInfo = rows.map(row => row.info).join(' ');
+
     const completion = await openai.chat.completions.create({
         messages: [
-            { role: "system", content: "Você é um porteiro virtual que só responde coisas do prédio que você está, o nome do prédio é: Caminho de Luxo, ele tem 20 andares com cada andar contendo 4 apartamentos" },
+            { role: "system", content: systemInfo },
             { role: "user", content: transcriptionText }
         ],
         model: "gpt-3.5-turbo",
@@ -78,13 +84,6 @@ async function pergunta(transcriptionText) {
 
     console.log(`Resposta: ${completion.choices[0].message.content}`);
     transcription2 = completion.choices[0].message.content;
-
-    // Verifica se transcription2 não está vazio antes de chamar speechIA
-    if (transcription2 && transcription2.trim().length > 0) {
-        await speechIA();
-    } else {
-        console.error('Erro: A resposta do GPT está vazia ou muito curta.');
-    }
 
     return transcription2; // Retorna a resposta do GPT
 }
@@ -102,7 +101,7 @@ async function speechIA() {
     console.log(`Áudio gerado salvo em: ${speechFile}`);
 }
 
-app.post('/get-audio', (req, res) => {
+app.get('/get-audio', (req, res) => {
     res.sendFile(speechFile);
 });
 
